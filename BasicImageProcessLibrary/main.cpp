@@ -3,7 +3,7 @@
 int main()
 {
     BMP bmp;
-    bmp.readImage("emma.bmp");
+    bmp.readImage("chess.bmp");
     bmp.saveGrayScale("grayScale");
    // bmp.cropImage(0,0,374,234);
     bmp.finalisation();

@@ -220,7 +220,7 @@ BYTE* BMP::SobelFiltering(BYTE* img,BYTE* sobelX,BYTE* sobelY, int w,int h)
     float Gy[9]={1.0 ,2.0 ,1.0,
                 0.0  ,0.0  ,0.0,
                 -1.0  ,-2.0  ,-1.0};
-
+//cout<<"\n d -->"<<d<<"\n";
     sobelX=Conv_330070(img, w,h,Gx,3);
     sobelY=Conv_330070(img, w,h,Gy,3);
 
@@ -279,16 +279,19 @@ BYTE* BMP::SobelFiltering(BYTE* img,BYTE* sobelX,BYTE* sobelY, int w,int h)
 
     NonMaxSuppression(edge_direction,edgeMagnitude,temp,w,h);
 
-	double lowThresholdRatio=0.05, highThresholdRatio=0.09;
+	double lowThresholdRatio=0.5, highThresholdRatio=0.183;
 
 
 	BYTE lowThreshold, highThreshold;
+
+
 	highThreshold	= max*highThresholdRatio;
 	lowThreshold	= highThreshold*lowThresholdRatio;
 
-	cout <<"low"<<(int)lowThreshold<<"\t high"<<(int)highThreshold;
+	cout <<"low"<<(int)lowThreshold<<"\t high"<<(int)highThreshold<<"\n\n";
 
-
+   /*  highThreshold	= 75;
+	lowThreshold	= 10; */
 	Hysteresis(lowThreshold,highThreshold,w,h,temp);
 
 return temp;
@@ -348,8 +351,7 @@ void BMP::Hysteresis(BYTE lowThreshold, BYTE highThreshold, int w, int h, BYTE* 
 	for(int i=1; i<w-1;i++)
 		for(int j=1;j<h-1;j++)
 		{
-            if(value[i+j*w] != 0 
-            )//&& value[i+j*w] != 1)
+            if( value[i+j*w] != 0 )//&& value[i+j*w] != 1)
 			    if( value [i-1+(j-1)*w] == 1 || value [i+(j-1)*w] == 1 || value [i+1+(j-1)*w] == 1 
 			    || value [i-1+j*w] == 1 || value [i+1+j*w] == 1 
 			    || value [i-1+(j+1)*w] == 1 || value [i+(j+1)*w] == 1 || value [i+1+(j+1)*w] == 1
@@ -363,62 +365,78 @@ void BMP::Hysteresis(BYTE lowThreshold, BYTE highThreshold, int w, int h, BYTE* 
 
 int* BMP::houghTransform(BYTE* value, int w, int h)
 {
-
 	//Create the accu
 	double hough_h = ((sqrt(2.0) * (double)(h>w?h:w)) / 2.0);
 	int accu_h = hough_h * 2.0; // -r -> +r
-	int accu_w = 180;
+	int accu_w = 180 + 1;
     
     int centerX=w/2;
     int centerY=h/2;
     
 	int* accu = new int[accu_h*accu_w];
-
+    double d;
 	for(int y=0;y<h;y++)
 	{
 		for(int x=0;x<w;x++)
 		{
 			if( (int)(value[ (y*w) + x]) == 1 )
 			{
-				for(int t=0;t<180;t++)
+                for(double t=0;t <=180;t++)
+                {
+                    d = (((double)x- centerX) * cos((t-90) * 3.14159265/180.0)) + (((double)y -centerY)* sin((t-90) * 3.14159265/180.0));
+                    accu[ (int)(round((d+hough_h))*accu_w + t) ]++;
+                }
+                //cout<<"\n   x-->"<<x<<"\n   y-->"<<y;
+
+				/* for(int t=0;t<180;t++)
 				{
-					double r = ( ((double)x -centerX ) * cos((double)t * 3.14159265/180.0)) + (((double)y-centerY) * sin((double)t * 3.14159265/180.0));
-					accu[ (int)((round(r + hough_h) * 180.0)) + t]++;
-				}
+					//double r = ( ((double)x -centerX ) * cos((double)(t-90) * 3.14159265/180.0)) + (((double)y-centerY) * sin((double)(t-90) * 3.14159265/180.0));
+					double r = ( ((double)x ) * cos((double)(t-90) * 3.14159265/180.0)) + (((double)y) * sin((double)(t-90) * 3.14159265/180.0));
+                    accu[ (int)((round(r + hough_h) * 180.0)) + t]++;
+				} */
 			}
 		}
 	}
-
+    
     int max;
+    int iter;
     int x1, y1, x2, y2;
     x1 = y1 = x2 = y2 = 0;
-    for(int i=0;i<accu_w;i++)
+    for(int i=0;i<= 180 ;i++)
     {   
         max=0;
         for(int j=0;j<accu_h;j++)
-            if(bastir[j*180+i] > max) max = bastir[j*180+i];
-        if(i >= 45 && i <= 135)
+            if(value[j*accu_w+i] > max)
+            {
+                max = value[j*accu_w+i];
+                iter = j;                
+            } 
+        if(i > 0  && i <= 90)
 		{
+        //cout<<"\n2\n";
 			//y = (r - x cos(t)) / sin(t)
 			x1 = 0;
-			y1 = ((double)(j-(accu_h/2)) - ((x1 - (w/2) ) * cos(i * 3.1415926535897/180.0 ))) / sin(i * DEG2RAD) + (h / 2);
+			y1 = ((double)(iter-(accu_h/2)) - ((x1 - (w/2) ) * cos((i - 90) * 3.1415926535897/180.0 ))) / sin((i - 90) * 3.1415926535897/180.0) + (h / 2);
 			x2 = w - 0;
-			y2 = ((double)(j-(accu_h/2)) - ((x2 - (w/2) ) * cos(i * DEG2RAD))) / sin(i * DEG2RAD) + (h / 2);
+			y2 = ((double)(iter-(accu_h/2)) - ((x2 - (w/2) ) * cos((i - 90) * 3.1415926535897/180.0))) / sin((i - 90) * 3.1415926535897/180.0) + (h / 2);
 		}
-		else
+		else if( i >= 90 && i <= 180 )
 		{
 			//x = (r - y sin(t)) / cos(t);
+        //cout<<"\n3\n";
 			y1 = 0;
-			x1 = ((double)(j-(accu_h/2)) - ((y1 - (h/2) ) * sin(i * DEG2RAD))) / cos(i * DEG2RAD) + (w / 2);
+			x1 = ((double)(iter-(accu_h/2)) - ((y1 - (h/2) ) * sin((i - 90) * 3.1415926535897/180.0))) / cos((i - 90) * 3.1415926535897/180.0) + (w / 2);
 			y2 = h - 0;
-			x2 = ((double)(j-(accu_h/2)) - ((y2 - (h/2) ) * sin(i * DEG2RAD))) / cos(i * DEG2RAD) + (w / 2);
+			x2 = ((double)(iter-(accu_h/2)) - ((y2 - (h/2) ) * sin((i - 90) * 3.1415926535897/180.0))) / cos((i - 90) * 3.1415926535897/180.0) + (w / 2);
         }   
         
-
+    cout<<"i--->"<<i<<"\n";
     Line(x1,y1,x2,y2);
-    }   
-    saveGrayScale(grayData,"bismillah");
-return accu;
+    }  
+
+     
+    saveGrayScale(grayData,"houghTransform");
+    return accu;
 }
 
 void BMP::finalisation()
@@ -426,6 +444,20 @@ void BMP::finalisation()
 	float gaussian3[9]=    {0.25,0.5,0.25,
                             0.5,1,0.5,
                             0.25,0.5,0.25};
+
+    float convMatrix5[25] = {   0.0625,	0.125,	0.25,	0.125,	0.0625,
+								0.125,	0.25,	0.5,	0.25,	0.125,
+								0.25,	0.5,	1,		0.5,	0.25,
+								0.125,	0.25,	0.5,	0.25,	0.125,
+								0.0625,	0.125,	0.25,	0.125,	0.0625 }; //7
+
+	float convMatrix7[49] = {	0.015625 ,	0.03125,	0.0625,	0.125,	0.0625,	0.03125,0.015625,
+								0.03125,	0.0625,		0.125,	0.25,	0.125,	0.0625,	0.03125,
+								0.625,		0.125,		0.25,	0.5,	0.25,	0.125,	0.625,
+								0.125,		0.25,		0.5,	1,		0.5,	0.25,	0.125,
+								0.625,		0.125,		0.25,	0.5,	0.25,	0.125,	0.625,
+								0.03125,	0.0625,		0.125,	0.25,	0.125,	0.0625,	0.03125,
+								0.015625,	0.03125,	0.0625, 0.125,	0.0625,	0.03125,0.015625 };
     
 
     BYTE* sobelX=new BYTE[imageinfo->getWidth()*imageinfo->getHeight()];
@@ -433,8 +465,10 @@ void BMP::finalisation()
 
     BYTE* gaussian=Conv_330070(grayData, imageinfo->getWidth(), imageinfo->getHeight(), gaussian3,3);
 
+
+
     BYTE* toHough=SobelFiltering(gaussian,sobelX,sobelY,imageinfo->getWidth(),imageinfo->getHeight());
-    cout<<"asıdjksdasmd";
+
     int* bastir=houghTransform(toHough,imageinfo->getWidth(),imageinfo->getHeight());
 
     /* for(int i=0;i<868;i++)
@@ -449,6 +483,7 @@ void BMP::finalisation()
 
 void BMP::Line( float x1, float y1, float x2, float y2)
 {
+    cout <<"x1 -- y1 -- x2 -- y2\n"<<x1<<"\t"<<y1<<"\t"<<x2<<"\t"<<y2<<"\n";
     int w=imageinfo->getWidth();
     int h=imageinfo->getHeight();
     // Bresenham's line algorithm
@@ -476,6 +511,7 @@ void BMP::Line( float x1, float y1, float x2, float y2)
  
   for(int x=(int)x1; x<maxX; x++)
   {
+  //cout<<"\nlineeee-----\\m/\n";
     if(steep)
     {
         grayData[y*w+x]=255;
