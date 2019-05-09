@@ -364,77 +364,79 @@ void BMP::Hysteresis(BYTE lowThreshold, BYTE highThreshold, int w, int h, BYTE* 
 }
 
 int* BMP::houghTransform(BYTE* value, int w, int h)
-{
-	//Create the accu
-	double hough_h = ((sqrt(2.0) * (double)(h>w?h:w)) / 2.0);
-	int accu_h = hough_h * 2.0; // -r -> +r
-	int accu_w = 180 + 1;
-    
-    int centerX=w/2;
-    int centerY=h/2;
-    
-	int* accu = new int[accu_h*accu_w];
+{   /////Set Accu values
+    double hough_h = ((sqrt(2.0) * (double)(h+w)) / 2.0);
+    int accu_h = hough_h * 2.0; 
+    int accu_w = 180 + 1;
+
+    int* accu = new int[accu_h*accu_w];
     double d;
-	for(int y=0;y<h;y++)
-	{
-		for(int x=0;x<w;x++)
-		{
-			if( (int)(value[ (y*w) + x]) == 1 )
-			{
-                for(double t=0;t <=180;t++)
+
+    for(int y=0;y<h;y++)
+    {
+        for(int x=0;x<w;x++)
+        {
+            if( (int)(value [ (y*w) + x ] ) == 1)
+            {
+                for(double t=0;t<=180;t++)
                 {
-                    d = (((double)x- centerX) * cos((t-90) * 3.14159265/180.0)) + (((double)y -centerY)* sin((t-90) * 3.14159265/180.0));
+                    d=((double)x)* cos( (t-90)*3.14159265/180.0 ) + (double)y* sin( (t-90) *3.14159265/180.0);
                     accu[ (int)(round((d+hough_h))*accu_w + t) ]++;
                 }
-                //cout<<"\n   x-->"<<x<<"\n   y-->"<<y;
+            }
+        }
+    }
+    /////////
 
-				/* for(int t=0;t<180;t++)
-				{
-					//double r = ( ((double)x -centerX ) * cos((double)(t-90) * 3.14159265/180.0)) + (((double)y-centerY) * sin((double)(t-90) * 3.14159265/180.0));
-					double r = ( ((double)x ) * cos((double)(t-90) * 3.14159265/180.0)) + (((double)y) * sin((double)(t-90) * 3.14159265/180.0));
-                    accu[ (int)((round(r + hough_h) * 180.0)) + t]++;
-				} */
-			}
-		}
-	}
-    
+    BYTE* hough=new BYTE[w*h];
+    for(int i=0;i<w*h;i++)
+    {
+        hough[i]=grayData[i];
+        grayData[i]=255;
+    }
+        
     int max;
     int iter;
     int x1, y1, x2, y2;
     x1 = y1 = x2 = y2 = 0;
-    for(int i=0;i<= 180 ;i++)
+
+    
+
+    for(int i=0;i< 180 ;i++)
     {   
         max=0;
         for(int j=0;j<accu_h;j++)
-            if(value[j*accu_w+i] > max)
+            if(accu[j*accu_w+i] > max)
             {
-                max = value[j*accu_w+i];
+                max = accu[j*accu_w+i];
                 iter = j;                
             } 
-        if(i > 0  && i <= 90)
+
+        if(i > 0  && i < 90)
 		{
         //cout<<"\n2\n";
 			//y = (r - x cos(t)) / sin(t)
 			x1 = 0;
-			y1 = ((double)(iter-(accu_h/2)) - ((x1 - (w/2) ) * cos((i - 90) * 3.1415926535897/180.0 ))) / sin((i - 90) * 3.1415926535897/180.0) + (h / 2);
+			y1 = ((double)(iter-(accu_h/2)) - ((x1  ) * cos((i - 90) * 3.1415926535897/180.0 ))) / sin((i - 90) * 3.1415926535897/180.0) + (h / 2);
 			x2 = w - 0;
-			y2 = ((double)(iter-(accu_h/2)) - ((x2 - (w/2) ) * cos((i - 90) * 3.1415926535897/180.0))) / sin((i - 90) * 3.1415926535897/180.0) + (h / 2);
+			y2 = ((double)(iter-(accu_h/2)) - ((x2 ) * cos((i - 90) * 3.1415926535897/180.0))) / sin((i - 90) * 3.1415926535897/180.0) + (h / 2);
 		}
 		else if( i >= 90 && i <= 180 )
 		{
 			//x = (r - y sin(t)) / cos(t);
-        //cout<<"\n3\n";
 			y1 = 0;
-			x1 = ((double)(iter-(accu_h/2)) - ((y1 - (h/2) ) * sin((i - 90) * 3.1415926535897/180.0))) / cos((i - 90) * 3.1415926535897/180.0) + (w / 2);
+        //cout<<"\n3\n";
+			x1 = ((double)(iter-(accu_h/2)) - ((y1  ) * sin((i - 90) * 3.1415926535897/180.0))) / cos((i - 90) * 3.1415926535897/180.0) + (w / 2);
 			y2 = h - 0;
-			x2 = ((double)(iter-(accu_h/2)) - ((y2 - (h/2) ) * sin((i - 90) * 3.1415926535897/180.0))) / cos((i - 90) * 3.1415926535897/180.0) + (w / 2);
+			x2 = ((double)(iter-(accu_h/2)) - ((y2 ) * sin((i - 90) * 3.1415926535897/180.0))) / cos((i - 90) * 3.1415926535897/180.0) + (w / 2);
         }   
         
     cout<<"i--->"<<i<<"\n";
     Line(x1,y1,x2,y2);
-    }  
 
-     
+    
+    }
+   
     saveGrayScale(grayData,"houghTransform");
     return accu;
 }
@@ -514,11 +516,12 @@ void BMP::Line( float x1, float y1, float x2, float y2)
   //cout<<"\nlineeee-----\\m/\n";
     if(steep)
     {
-        grayData[y*w+x]=255;
+        grayData[x+w*y]=0;
     }
     else
     {
-        grayData[x*w+y]=255;
+    //cout<<"\nlineeee-----\\m/22222\n";
+        grayData[x+w*y]=0;
     }
  
     error -= dy;
