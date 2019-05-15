@@ -27,10 +27,11 @@ class BMP
         
         BYTE* zoom(int x1, int y1, int x2, int y2, int w, int h, BYTE* buffer1);
         BYTE* Conv_330070(BYTE* raw, int width, int height, float* convMatrix, int cW);
-        BYTE* SobelFiltering(BYTE* img,BYTE* sobelX,BYTE* sobelY, int w,int h);
+        BYTE* SobelFiltering(BYTE* img,BYTE* sobelX,BYTE* sobelY, int w,int h,float* edge_direction);
         void NonMaxSuppression(float* edge_direction, float* edge_magnitude,BYTE* value,int width, int height);
         void Hysteresis(BYTE lowThreshold, BYTE highThreshold, int w, int h, BYTE* value);
-        int* houghTransform(BYTE* value, int w, int h);
+        void houghTransform(BYTE* value, int w, int h,float* edge_direction);
+        //int Transform(BYTE* value, int w, int h);
         void Line( float x1, float y1, float x2, float y2);
         void finalisation(); //Final function includes other func.
       
