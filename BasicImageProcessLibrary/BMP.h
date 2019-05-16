@@ -26,8 +26,8 @@ class BMP
         void saveImage(string filename);//Save the BMP file
         
         BYTE* zoom(int x1, int y1, int x2, int y2, int w, int h, BYTE* buffer1);
-        BYTE* Conv_330070(BYTE* raw, int width, int height, float* convMatrix, int cW);
-        BYTE* SobelFiltering(BYTE* img,BYTE* sobelX,BYTE* sobelY, int w,int h,float* edge_direction);
+        BYTE* Conv(BYTE* raw, int width, int height, float* convMatrix, int cW);
+        BYTE* SobelFiltering(BYTE* img, int w,int h,float* edge_direction);
         void NonMaxSuppression(float* edge_direction, float* edge_magnitude,BYTE* value,int width, int height);
         void Hysteresis(BYTE lowThreshold, BYTE highThreshold, int w, int h, BYTE* value);
         void houghTransform(BYTE* value, int w, int h,float* edge_direction);
